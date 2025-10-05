@@ -19,7 +19,7 @@ class SavedJobsScreen extends StatelessWidget {
       body: RefreshIndicator(
         onRefresh: () => jobProvider.fetchSavedJobs(),
         child: jobProvider.isLoading
-            ? const LoadingWidget(message: 'Loading saved jobs...')
+            ? LoadingWidget(message: 'Loading saved jobs...')
             : jobProvider.savedJobs.isEmpty
                 ? Center(
                     child: Column(

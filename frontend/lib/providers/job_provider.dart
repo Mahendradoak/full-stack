@@ -7,17 +7,57 @@ class JobProvider extends ChangeNotifier {
   List<JobModel> _jobs = [];
   List<JobModel> _featuredJobs = [];
   List<JobModel> _savedJobs = [];
-  JobModel? _selectedJob;  // Add this
+  JobModel? _selectedJob;
   
   bool _isLoading = false;
+  bool _isLoadingMore = false;  // ADD THIS
   String? _error;
+  
+  // ADD THESE FOR SEARCH
+  String _searchQuery = '';
+  List<JobModel> _filteredJobs = [];
+  
+  // ADD THESE FOR PAGINATION
+  int _currentPage = 1;
+  bool _hasMore = true;
 
-  List<JobModel> get jobs => _jobs;
+  // EXISTING GETTERS
+  List<JobModel> get jobs => _searchQuery.isEmpty ? _jobs : _filteredJobs;  // MODIFIED
   List<JobModel> get featuredJobs => _featuredJobs;
   List<JobModel> get savedJobs => _savedJobs;
-  JobModel? get selectedJob => _selectedJob;  // Add this
+  JobModel? get selectedJob => _selectedJob;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  
+  // ADD THESE NEW GETTERS
+  bool get isLoadingMore => _isLoadingMore;
+  String get searchQuery => _searchQuery;
+  bool get hasMore => _hasMore;
+
+  // ADD THIS METHOD - Search functionality
+  void searchJobs(String query) {
+    _searchQuery = query.trim().toLowerCase();
+    
+    if (_searchQuery.isEmpty) {
+      _filteredJobs = [];
+    } else {
+      _filteredJobs = _jobs.where((job) {
+        return job.title.toLowerCase().contains(_searchQuery) ||
+               job.company.toLowerCase().contains(_searchQuery) ||
+               job.description.toLowerCase().contains(_searchQuery) ||
+               job.location.toLowerCase().contains(_searchQuery);
+      }).toList();
+    }
+    
+    notifyListeners();
+  }
+
+  // ADD THIS METHOD - Clear search
+  void clearSearch() {
+    _searchQuery = '';
+    _filteredJobs = [];
+    notifyListeners();
+  }
 
   Future<void> fetchFeaturedJobs() async {
     _isLoading = true;
@@ -39,27 +79,51 @@ class JobProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> fetchJobs() async {
-    _isLoading = true;
+  // MODIFY THIS METHOD - Add refresh parameter
+  Future<void> fetchJobs({bool refresh = false}) async {
+    if (refresh) {
+      _currentPage = 1;
+      _hasMore = true;
+      _jobs.clear();
+    }
+
+    if (!_hasMore || _isLoading || _isLoadingMore) return;
+
+    if (refresh || _jobs.isEmpty) {
+      _isLoading = true;
+    } else {
+      _isLoadingMore = true;
+    }
+    
     notifyListeners();
 
     try {
       final response = await ApiService().get(ApiConstants.jobs);
       if (response.data['success']) {
-        _jobs = (response.data['jobs'] as List)
+        final newJobs = (response.data['jobs'] as List)
             .map((job) => JobModel.fromJson(job))
             .toList();
+        
+        if (refresh) {
+          _jobs = newJobs;
+        } else {
+          _jobs.addAll(newJobs);
+        }
+        
+        _hasMore = newJobs.length >= 10;
+        _currentPage++;
       }
       _isLoading = false;
+      _isLoadingMore = false;
       notifyListeners();
     } catch (e) {
       _error = 'Failed to load jobs';
       _isLoading = false;
+      _isLoadingMore = false;
       notifyListeners();
     }
   }
 
-  // Add this method
   Future<void> fetchJobById(String jobId) async {
     _isLoading = true;
     notifyListeners();
@@ -119,7 +183,6 @@ class JobProvider extends ChangeNotifier {
     }
   }
 
-  // Add this method
   bool isJobSaved(String jobId) {
     return _savedJobs.any((job) => job.id == jobId);
   }

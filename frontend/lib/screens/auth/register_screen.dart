@@ -29,9 +29,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _handleRegister() async {
-    if (!_formKey.currentState!.validate()) return;
+    // Validate form
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
+    // Show loading indicator
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    print('📝 Starting registration...');
+    print('Name: ${_nameController.text.trim()}');
+    print('Email: ${_emailController.text.trim()}');
     
     final success = await authProvider.register(
       name: _nameController.text.trim(),
@@ -42,12 +50,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
 
     if (success) {
+      print('✅ Registration successful!');
+      
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Registration successful! Welcome aboard!'),
+          backgroundColor: AppColors.success,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      
+      // Navigate to main screen
       context.go('/main');
     } else {
+      print('❌ Registration failed: ${authProvider.error}');
+      
+      // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(authProvider.error ?? 'Registration failed'),
+          content: Text(authProvider.error ?? 'Registration failed. Please try again.'),
           backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -55,114 +79,169 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isWeb = size.width > AppDimensions.tabletBreakpoint;
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/login'),
         ),
+        title: const Text('Create Account'),
       ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Icon(
-                    Icons.person_add_rounded,
-                    size: 80,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Create Account',
-                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
+            padding: const EdgeInsets.all(AppDimensions.paddingLarge),
+            child: Container(
+              constraints: BoxConstraints(
+                maxWidth: isWeb ? 500 : double.infinity,
+              ),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Logo
+                    Icon(
+                      Icons.person_add_rounded,
+                      size: 80,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 32),
-                  CustomTextField(
-                    controller: _nameController,
-                    label: 'Full Name',
-                    hint: 'Enter your name',
-                    prefixIcon: Icons.person_outlined,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Name is required';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  CustomTextField(
-                    controller: _emailController,
-                    label: 'Email',
-                    hint: 'Enter your email',
-                    prefixIcon: Icons.email_outlined,
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Email is required';
-                      }
-                      if (!value.contains('@')) {
-                        return 'Enter a valid email';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  CustomTextField(
-                    controller: _passwordController,
-                    label: 'Password',
-                    hint: 'Create a password',
-                    prefixIcon: Icons.lock_outlined,
-                    obscureText: _obscurePassword,
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                    const SizedBox(height: AppDimensions.paddingLarge),
+
+                    // Welcome Text
+                    Text(
+                      'Create Account',
+                      style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Sign up to get started',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: AppDimensions.paddingXLarge),
+
+                    // Name Field
+                    CustomTextField(
+                      controller: _nameController,
+                      label: AppStrings.name,
+                      hint: 'Enter your full name',
+                      prefixIcon: Icons.person_outlined,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Name is required';
+                        }
+                        if (value.trim().length < 2) {
+                          return 'Name must be at least 2 characters';
+                        }
+                        return null;
                       },
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Password is required';
-                      }
-                      if (value.length < 6) {
-                        return 'Password must be at least 6 characters';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 32),
-                  Consumer<AuthProvider>(
-                    builder: (context, authProvider, child) {
-                      return CustomButton(
-                        text: 'Register',
-                        onPressed: _handleRegister,
-                        isLoading: authProvider.isLoading,
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('Already have an account?'),
-                      TextButton(
-                        onPressed: () => context.go('/login'),
-                        child: const Text('Login'),
+                    const SizedBox(height: AppDimensions.paddingMedium),
+
+                    // Email Field
+                    CustomTextField(
+                      controller: _emailController,
+                      label: AppStrings.email,
+                      hint: 'Enter your email',
+                      prefixIcon: Icons.email_outlined,
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Email is required';
+                        }
+                        if (!value.contains('@') || !value.contains('.')) {
+                          return 'Enter a valid email address';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: AppDimensions.paddingMedium),
+
+                    // Password Field
+                    CustomTextField(
+                      controller: _passwordController,
+                      label: AppStrings.password,
+                      hint: 'Create a password (min. 6 characters)',
+                      prefixIcon: Icons.lock_outlined,
+                      obscureText: _obscurePassword,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
                       ),
-                    ],
-                  ),
-                ],
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Password is required';
+                        }
+                        if (value.length < 6) {
+                          return 'Password must be at least 6 characters';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: AppDimensions.paddingXLarge),
+
+                    // Register Button
+                    Consumer<AuthProvider>(
+                      builder: (context, authProvider, child) {
+                        return CustomButton(
+                          text: AppStrings.register,
+                          onPressed: authProvider.isLoading ? null : _handleRegister,
+                          isLoading: authProvider.isLoading,
+                        );
+                      },
+                    ),
+                    const SizedBox(height: AppDimensions.paddingLarge),
+
+                    // Divider
+                    Row(
+                      children: [
+                        const Expanded(child: Divider()),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            'OR',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                        const Expanded(child: Divider()),
+                      ],
+                    ),
+                    const SizedBox(height: AppDimensions.paddingLarge),
+
+                    // Login Link
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          AppStrings.alreadyHaveAccount,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        TextButton(
+                          onPressed: () => context.go('/login'),
+                          child: const Text(
+                            AppStrings.login,
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

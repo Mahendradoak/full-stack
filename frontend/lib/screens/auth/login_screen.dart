@@ -27,9 +27,15 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
-    if (!_formKey.currentState!.validate()) return;
+    // Validate form
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    print('🔐 Starting login...');
+    print('Email: ${_emailController.text.trim()}');
     
     final success = await authProvider.login(
       _emailController.text.trim(),
@@ -39,12 +45,28 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (success) {
+      print('✅ Login successful!');
+      
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Welcome back!'),
+          backgroundColor: AppColors.success,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      
+      // Navigate to main screen
       context.go('/main');
     } else {
+      print('❌ Login failed: ${authProvider.error}');
+      
+      // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(authProvider.error ?? 'Login failed'),
+          content: Text(authProvider.error ?? 'Login failed. Please check your credentials.'),
           backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -103,7 +125,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       prefixIcon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
+                        if (value == null || value.trim().isEmpty) {
                           return 'Email is required';
                         }
                         if (!value.contains('@')) {
@@ -148,7 +170,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       alignment: Alignment.centerRight,
                       child: TextButton(
                         onPressed: () {
-                          // TODO: Implement forgot password
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Forgot password feature coming soon!'),
@@ -165,7 +186,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       builder: (context, authProvider, child) {
                         return CustomButton(
                           text: AppStrings.login,
-                          onPressed: _handleLogin,
+                          onPressed: authProvider.isLoading ? null : _handleLogin,
                           isLoading: authProvider.isLoading,
                         );
                       },
@@ -197,7 +218,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                         TextButton(
-                          onPressed: () => context.go('/register'),
+                          onPressed: () {
+                            print('🔄 Navigating to register...');
+                            context.go('/register');
+                          },
                           child: const Text(
                             AppStrings.register,
                             style: TextStyle(fontWeight: FontWeight.bold),

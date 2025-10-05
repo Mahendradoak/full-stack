@@ -30,7 +30,7 @@ class _MainNavigationState extends State<MainNavigation> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final jobProvider = Provider.of<JobProvider>(context, listen: false);
       jobProvider.fetchFeaturedJobs();
-      jobProvider.fetchJobs();
+      jobProvider.fetchJobs(refresh: true);  // ← CHANGED: Added refresh: true
       jobProvider.fetchSavedJobs();
     });
   }

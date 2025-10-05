@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/job_provider.dart';
+import 'home_screen.dart';
+import 'jobs_screen.dart';
+import 'saved_jobs_screen.dart';
+import 'profile_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -12,27 +16,32 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
-  final List<Widget> _screens = [
-    Center(child: Text('Home Screen')),
-    Center(child: Text('Jobs Screen')),
-    Center(child: Text('Saved Jobs Screen')),
-    Center(child: Text('Profile Screen')),
+  final List<Widget> _screens = const [
+    HomeScreen(),
+    JobsScreen(),
+    SavedJobsScreen(),
+    ProfileScreen(),
   ];
 
   @override
   void initState() {
     super.initState();
+    // Load initial data after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final jobProvider = Provider.of<JobProvider>(context, listen: false);
       jobProvider.fetchFeaturedJobs();
       jobProvider.fetchJobs(refresh: true);
+      jobProvider.fetchSavedJobs();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_selectedIndex],
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _screens,
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {

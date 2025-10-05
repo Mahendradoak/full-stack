@@ -7,7 +7,7 @@ class ApiService {
   factory ApiService() => _instance;
   ApiService._internal();
 
-  late final Dio _dio;
+  Dio? _dio;
 
   void initialize() {
     _dio = Dio(
@@ -22,36 +22,64 @@ class ApiService {
       ),
     );
 
-    _dio.interceptors.add(
+    _dio!.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           final token = await StorageService().getToken();
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
           }
+          print('REQUEST[${options.method}] => PATH: ${options.path}');
           return handler.next(options);
         },
+        onResponse: (response, handler) {
+          print('RESPONSE[${response.statusCode}] => DATA: ${response.data}');
+          return handler.next(response);
+        },
         onError: (error, handler) {
-          print('API Error: ${error.message}');
+          print('ERROR[${error.response?.statusCode}] => MESSAGE: ${error.message}');
           return handler.next(error);
         },
       ),
     );
   }
 
+  Dio get dio {
+    if (_dio == null) {
+      throw Exception('ApiService not initialized. Call initialize() first.');
+    }
+    return _dio!;
+  }
+
   Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) async {
-    return await _dio.get(path, queryParameters: queryParameters);
+    try {
+      return await dio.get(path, queryParameters: queryParameters);
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Future<Response> post(String path, {dynamic data}) async {
-    return await _dio.post(path, data: data);
+    try {
+      return await dio.post(path, data: data);
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Future<Response> put(String path, {dynamic data}) async {
-    return await _dio.put(path, data: data);
+    try {
+      return await dio.put(path, data: data);
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Future<Response> delete(String path) async {
-    return await _dio.delete(path);
+    try {
+      return await dio.delete(path);
+    } catch (e) {
+      rethrow;
+    }
   }
 }

@@ -6,13 +6,38 @@ import '../widgets/job_card.dart';
 import '../widgets/loading_widget.dart';
 import 'job_details_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialData();
+  }
+
+  Future<void> _loadInitialData() async {
+    final jobProvider = Provider.of<JobProvider>(context, listen: false);
+    await Future.wait([
+      jobProvider.fetchFeaturedJobs(),
+      jobProvider.fetchSavedJobs(),
+    ]);
+  }
+
+  Future<void> _handleRefresh() async {
+    final jobProvider = Provider.of<JobProvider>(context, listen: false);
+    await jobProvider.fetchFeaturedJobs();
+  }
 
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final jobProvider = Provider.of<JobProvider>(context);
+    final firstName = authProvider.user?.name.split(' ').first ?? 'User';
 
     return Scaffold(
       appBar: AppBar(
@@ -20,7 +45,7 @@ class HomeScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Hello, ${authProvider.user?.name.split(' ').first ?? 'User'}!',
+              'Hello, $firstName!',
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const Text(
@@ -34,23 +59,26 @@ class HomeScreen extends StatelessWidget {
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Notifications coming soon!')),
+                const SnackBar(
+                  content: Text('Notifications coming soon!'),
+                  behavior: SnackBarBehavior.floating,
+                ),
               );
             },
           ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () async {
-          await jobProvider.fetchFeaturedJobs();
-        },
+        onRefresh: _handleRefresh,
         child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Search Bar
               TextField(
+                readOnly: true,
                 decoration: InputDecoration(
                   hintText: 'Search jobs...',
                   prefixIcon: const Icon(Icons.search),
@@ -58,11 +86,9 @@ class HomeScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                onSubmitted: (value) {
-                  // Navigate to jobs screen with search
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Searching for: $value')),
-                  );
+                onTap: () {
+                  // Navigate to jobs screen (tab index 1)
+                  DefaultTabController.of(context)?.animateTo(1);
                 },
               ),
               const SizedBox(height: 24),
@@ -103,7 +129,8 @@ class HomeScreen extends StatelessWidget {
                   ),
                   TextButton(
                     onPressed: () {
-                      // Navigate to jobs screen
+                      // Navigate to jobs screen (tab index 1)
+                      DefaultTabController.of(context)?.animateTo(1);
                     },
                     child: const Text('See All'),
                   ),
@@ -115,10 +142,26 @@ class HomeScreen extends StatelessWidget {
               if (jobProvider.isLoading)
                 const LoadingWidget(message: 'Loading featured jobs...')
               else if (jobProvider.featuredJobs.isEmpty)
-                const Center(
+                Center(
                   child: Padding(
-                    padding: EdgeInsets.all(32.0),
-                    child: Text('No featured jobs available'),
+                    padding: const EdgeInsets.all(32.0),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.work_off_outlined,
+                          size: 64,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No featured jobs available',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 )
               else
@@ -140,10 +183,23 @@ class HomeScreen extends StatelessWidget {
                         );
                       },
                       onSave: () async {
-                        if (jobProvider.isJobSaved(job.id)) {
-                          await jobProvider.unsaveJob(job.id);
-                        } else {
-                          await jobProvider.saveJob(job.id);
+                        final isSaved = jobProvider.isJobSaved(job.id);
+                        final success = isSaved
+                            ? await jobProvider.unsaveJob(job.id)
+                            : await jobProvider.saveJob(job.id);
+
+                        if (mounted && success) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                isSaved
+                                    ? 'Job removed from saved'
+                                    : 'Job saved successfully',
+                              ),
+                              behavior: SnackBarBehavior.floating,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
                         }
                       },
                     );

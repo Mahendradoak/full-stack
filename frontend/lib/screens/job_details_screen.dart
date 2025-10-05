@@ -49,7 +49,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         ],
       ),
       body: job == null
-          ? const LoadingWidget(message: 'Loading job details...')
+          ? LoadingWidget(message: 'Loading job details...')
           : SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
