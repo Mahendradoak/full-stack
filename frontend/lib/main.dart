@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
+import 'providers/job_provider.dart';
+import 'screens/main_navigation.dart';
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart';
-import 'models/user_model.dart';
+import 'services/api_service.dart';
+import 'services/storage_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize services
+  ApiService().initialize();
+  await StorageService().initialize();
+  
   runApp(const MyApp());
 }
 
@@ -18,6 +26,7 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => JobProvider()),  // Add this
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
@@ -282,11 +291,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               );
                               if (success && mounted) {
                                 Navigator.of(context).pushReplacement(
-                                  MaterialPageRoute(
-                                    builder: (_) => HomeScreen(
-                                      userName: authProvider.user?.name ?? 'User',
-                                    ),
-                                  ),
+                                MaterialPageRoute(
+                                builder: (_) => const MainNavigation(),  // Changed from HomeScreen
+                              ),
                                 );
                               }
                             },

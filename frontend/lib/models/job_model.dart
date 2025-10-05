@@ -9,7 +9,6 @@ class JobModel {
   final String jobType;
   final String status;
   final DateTime createdAt;
-  final DateTime updatedAt;
 
   JobModel({
     required this.id,
@@ -22,7 +21,6 @@ class JobModel {
     required this.jobType,
     required this.status,
     required this.createdAt,
-    required this.updatedAt,
   });
 
   factory JobModel.fromJson(Map<String, dynamic> json) {
@@ -37,40 +35,25 @@ class JobModel {
       jobType: json['jobType'] ?? 'Full-time',
       status: json['status'] ?? 'active',
       createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
-      updatedAt: DateTime.parse(json['updatedAt'] ?? DateTime.now().toIso8601String()),
     );
   }
 
   String get timeAgo {
     final difference = DateTime.now().difference(createdAt);
-    
-    if (difference.inDays > 30) {
-      return '${(difference.inDays / 30).floor()} month(s) ago';
-    } else if (difference.inDays > 0) {
-      return '${difference.inDays} day(s) ago';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours} hour(s) ago';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} minute(s) ago';
-    } else {
-      return 'Just now';
-    }
+    if (difference.inDays > 30) return '${(difference.inDays / 30).floor()} month(s) ago';
+    if (difference.inDays > 0) return '${difference.inDays} day(s) ago';
+    if (difference.inHours > 0) return '${difference.inHours} hour(s) ago';
+    return 'Just now';
   }
 
   String get jobTypeIcon {
     switch (jobType.toLowerCase()) {
-      case 'full-time':
-        return '💼';
-      case 'part-time':
-        return '⏰';
-      case 'contract':
-        return '📝';
-      case 'internship':
-        return '🎓';
-      case 'remote':
-        return '🏠';
-      default:
-        return '💼';
+      case 'remote': return '🏠';
+      case 'full-time': return '💼';
+      case 'part-time': return '⏰';
+      case 'contract': return '📝';
+      case 'internship': return '🎓';
+      default: return '💼';
     }
   }
 }

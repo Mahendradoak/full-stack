@@ -7,35 +7,29 @@ class JobProvider extends ChangeNotifier {
   List<JobModel> _jobs = [];
   List<JobModel> _featuredJobs = [];
   List<JobModel> _savedJobs = [];
+  JobModel? _selectedJob;  // Add this
   
   bool _isLoading = false;
   String? _error;
-  
-  int _currentPage = 1;
-  int _totalPages = 1;
-  bool _hasMore = true;
 
   List<JobModel> get jobs => _jobs;
   List<JobModel> get featuredJobs => _featuredJobs;
   List<JobModel> get savedJobs => _savedJobs;
+  JobModel? get selectedJob => _selectedJob;  // Add this
   bool get isLoading => _isLoading;
   String? get error => _error;
-  bool get hasMore => _hasMore;
 
   Future<void> fetchFeaturedJobs() async {
     _isLoading = true;
-    _error = null;
     notifyListeners();
 
     try {
       final response = await ApiService().get(ApiConstants.featuredJobs);
-
       if (response.data['success']) {
         _featuredJobs = (response.data['jobs'] as List)
             .map((job) => JobModel.fromJson(job))
             .toList();
       }
-
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -45,45 +39,40 @@ class JobProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> fetchJobs({bool refresh = false}) async {
-    if (refresh) {
-      _currentPage = 1;
-      _jobs = [];
-      _hasMore = true;
-    }
-
-    if (!_hasMore && !refresh) return;
-
+  Future<void> fetchJobs() async {
     _isLoading = true;
-    _error = null;
     notifyListeners();
 
     try {
-      final response = await ApiService().get(
-        ApiConstants.jobs,
-        queryParameters: {'page': _currentPage, 'limit': 10},
-      );
-
+      final response = await ApiService().get(ApiConstants.jobs);
       if (response.data['success']) {
-        final newJobs = (response.data['jobs'] as List)
+        _jobs = (response.data['jobs'] as List)
             .map((job) => JobModel.fromJson(job))
             .toList();
-
-        if (refresh) {
-          _jobs = newJobs;
-        } else {
-          _jobs.addAll(newJobs);
-        }
-
-        _totalPages = response.data['pages'] ?? 1;
-        _currentPage++;
-        _hasMore = _currentPage <= _totalPages;
       }
-
       _isLoading = false;
       notifyListeners();
     } catch (e) {
       _error = 'Failed to load jobs';
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Add this method
+  Future<void> fetchJobById(String jobId) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final response = await ApiService().get('${ApiConstants.jobs}/$jobId');
+      if (response.data['success']) {
+        _selectedJob = JobModel.fromJson(response.data['job']);
+      }
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _error = 'Failed to load job details';
       _isLoading = false;
       notifyListeners();
     }
@@ -130,11 +119,8 @@ class JobProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> searchJobs(String keyword) async {
-    await fetchJobs(refresh: true);
-  }
-
-  void clearFilters() {
-    fetchJobs(refresh: true);
+  // Add this method
+  bool isJobSaved(String jobId) {
+    return _savedJobs.any((job) => job.id == jobId);
   }
 }

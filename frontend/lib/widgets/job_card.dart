@@ -1,27 +1,27 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 import '../models/job_model.dart';
-import '../providers/auth_provider.dart';
-import '../providers/job_provider.dart';
-import '../utils/constants.dart';
 
 class JobCard extends StatelessWidget {
   final JobModel job;
+  final VoidCallback onTap;
+  final VoidCallback? onSave;
+  final bool isSaved;
 
-  const JobCard({super.key, required this.job});
+  const JobCard({
+    super.key,
+    required this.job,
+    required this.onTap,
+    this.onSave,
+    this.isSaved = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final jobProvider = Provider.of<JobProvider>(context);
-    final authProvider = Provider.of<AuthProvider>(context);
-    final isSaved = authProvider.user?.isJobSaved(job.id) ?? false;
-
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       child: InkWell(
-        onTap: () => context.push('/jobs/${job.id}'),
-        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -33,7 +33,7 @@ class JobCard extends StatelessWidget {
                     width: 50,
                     height: 50,
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
+                      color: Colors.indigo.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Center(
@@ -42,7 +42,7 @@ class JobCard extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
+                          color: Colors.indigo,
                         ),
                       ),
                     ),
@@ -54,7 +54,8 @@ class JobCard extends StatelessWidget {
                       children: [
                         Text(
                           job.title,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          style: const TextStyle(
+                            fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                           maxLines: 1,
@@ -62,43 +63,36 @@ class JobCard extends StatelessWidget {
                         ),
                         Text(
                           job.company,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                          style: TextStyle(color: Colors.grey[600]),
                         ),
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(
-                      isSaved ? Icons.bookmark : Icons.bookmark_border,
-                      color: isSaved ? AppColors.primary : null,
+                  if (onSave != null)
+                    IconButton(
+                      icon: Icon(
+                        isSaved ? Icons.bookmark : Icons.bookmark_border,
+                        color: isSaved ? Colors.indigo : null,
+                      ),
+                      onPressed: onSave,
                     ),
-                    onPressed: () async {
-                      if (isSaved) {
-                        await jobProvider.unsaveJob(job.id);
-                      } else {
-                        await jobProvider.saveJob(job.id);
-                      }
-                    },
-                  ),
                 ],
               ),
               const SizedBox(height: 12),
               Text(
                 job.description,
-                style: Theme.of(context).textTheme.bodyMedium,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: Colors.grey[700]),
               ),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _buildChip(context, '${job.jobTypeIcon} ${job.jobType}'),
-                  _buildChip(context, '📍 ${job.location}'),
-                  _buildChip(context, '💰 ${job.salary}'),
+                  _buildChip('${job.jobTypeIcon} ${job.jobType}'),
+                  _buildChip('📍 ${job.location}'),
+                  _buildChip('💰 ${job.salary}'),
                 ],
               ),
             ],
@@ -108,14 +102,14 @@ class JobCard extends StatelessWidget {
     );
   }
 
-  Widget _buildChip(BuildContext context, String label) {
+  Widget _buildChip(String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceVariant,
+        color: Colors.grey[200],
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(label, style: Theme.of(context).textTheme.bodySmall),
+      child: Text(label, style: const TextStyle(fontSize: 12)),
     );
   }
 }
